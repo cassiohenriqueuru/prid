@@ -81,6 +81,14 @@ jobs:
           resourceGroup: ${{ env.RESOURCE_GROUP_HML }}
           imageToDeploy: ${{ needs.build.outputs.image_tag }}
 
+      # Safety net: force image update explicitly
+      - name: Force image update (safety net)
+        run: |
+          az containerapp update \
+            --name ${{ env.CONTAINER_APP_HML }} \
+            --resource-group ${{ env.RESOURCE_GROUP_HML }} \
+            --image ${{ needs.build.outputs.image_tag }}
+
       - name: Print HML URL
         run: |
           URL=$(az containerapp show \
