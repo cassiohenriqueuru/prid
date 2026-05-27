@@ -13,13 +13,13 @@ on:
         default: false
 
 env:
-  ACR_NAME: pridregistry                          # your ACR name (without .azurecr.io)
-  ACR_LOGIN_SERVER: pridregistry.azurecr.io
+  ACR_NAME: pridregistryhml                          # your ACR name (without .azurecr.io)
+  ACR_LOGIN_SERVER: pridregistryhml.azurecr.io
   IMAGE_NAME: prid
-  RESOURCE_GROUP_HML: lerning
-  RESOURCE_GROUP_PROD: lerning
-  CONTAINER_APP_HML: myapp-hml
-  CONTAINER_APP_PROD: myapp-prod
+  RESOURCE_GROUP_HML: hml
+  RESOURCE_GROUP_PROD: prod
+  CONTAINER_APP_HML: pridcontainerapp
+  CONTAINER_APP_PROD: pridcontainerapp
 
 jobs:
   # ─────────────────────────────────────────────
