@@ -61,33 +61,58 @@ jobs:
   # JOB 2 — Deploy to HML
   # Runs automatically after build
   # ─────────────────────────────────────────────
-  deploy-hml:
-    name: Deploy to HML
-    runs-on: ubuntu-latest
-    needs: build
-    environment: hml                            # maps to GitHub Environment "hml"
-
-    steps:
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: Deploy to Container App HML
-        uses: azure/container-apps-deploy-action@v1
-        with:
-          acrName: ${{ env.ACR_NAME }}
-          containerAppName: ${{ env.CONTAINER_APP_HML }}
-          resourceGroup: ${{ env.RESOURCE_GROUP_HML }}
-          imageToDeploy: ${{ needs.build.outputs.image_tag }}
-
-      - name: Print HML URL
-        run: |
-          URL=$(az containerapp show \
-            --name ${{ env.CONTAINER_APP_HML }} \
-            --resource-group ${{ env.RESOURCE_GROUP_HML }} \
-            --query properties.configuration.ingress.fqdn -o tsv)
-          echo "✅ HML deployed → https://$URL"
+      deploy-hml:
+      name: Deploy to HML
+      runs-on: ubuntu-latest
+      needs: build
+      environment: hml
+    
+      steps:
+        - name: Azure Login
+          uses: azure/login@v2
+          with:
+            creds: ${{ secrets.AZURE_CREDENTIALS }}
+    
+        - name: Wait for Container App operations to finish
+          run: |
+            echo "Waiting for Container App provisioning to complete..."
+    
+            for i in {1..30}; do
+              STATE=$(az containerapp show \
+                --name ${{ env.CONTAINER_APP_HML }} \
+                --resource-group ${{ env.RESOURCE_GROUP_HML }} \
+                --query "properties.provisioningState" \
+                -o tsv)
+    
+              echo "Current state: $STATE"
+    
+              if [ "$STATE" = "Succeeded" ]; then
+                echo "Container App ready."
+                exit 0
+              fi
+    
+              sleep 20
+            done
+    
+            echo "Timeout waiting for Container App provisioning."
+            exit 1
+    
+        - name: Deploy to Container App HML
+          uses: azure/container-apps-deploy-action@v1
+          with:
+            acrName: ${{ env.ACR_NAME }}
+            containerAppName: ${{ env.CONTAINER_APP_HML }}
+            resourceGroup: ${{ env.RESOURCE_GROUP_HML }}
+            imageToDeploy: ${{ needs.build.outputs.image_tag }}
+    
+        - name: Print HML URL
+          run: |
+            URL=$(az containerapp show \
+              --name ${{ env.CONTAINER_APP_HML }} \
+              --resource-group ${{ env.RESOURCE_GROUP_HML }} \
+              --query properties.configuration.ingress.fqdn -o tsv)
+    
+            echo "✅ HML deployed → https://$URL"
 
   # ─────────────────────────────────────────────
   # JOB 3 — Deploy to PROD
