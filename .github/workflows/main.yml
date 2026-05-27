@@ -123,13 +123,13 @@ jobs:
         run: |
           az containerapp update \
             --name ${{ env.CONTAINER_APP_PROD }} \            # ✅ fixed
-            --resource-group ${{ env.RESOURCE_GROUP_PROD }} \ # ✅ fixed
+            --resource-group ${{ env.RESOURCE_GROUP_HML }} \ # ✅ fixed
             --image ${{ needs.build.outputs.image_tag }}
 
       - name: Print PROD URL
         run: |
           URL=$(az containerapp show \
             --name ${{ env.CONTAINER_APP_PROD }} \            # ✅ fixed
-            --resource-group ${{ env.RESOURCE_GROUP_PROD }} \ # ✅ fixed
+            --resource-group ${{ env.RESOURCE_GROUP_HML }} \ # ✅ fixed
             --query properties.configuration.ingress.fqdn -o tsv)
           echo "✅ PROD deployed → https://$URL"
