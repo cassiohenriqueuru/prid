@@ -62,7 +62,32 @@ jobs:
   # Runs automatically after build
   # ─────────────────────────────────────────────
   deploy-hml:
-  
+    name: Deploy to HML
+    runs-on: ubuntu-latest
+    needs: build
+    environment: hml                            # maps to GitHub Environment "hml"
+
+    steps:
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy to Container App HML
+        uses: azure/container-apps-deploy-action@v1
+        with:
+          acrName: ${{ env.ACR_NAME }}
+          containerAppName: ${{ env.CONTAINER_APP_HML }}
+          resourceGroup: ${{ env.RESOURCE_GROUP_HML }}
+          imageToDeploy: ${{ needs.build.outputs.image_tag }}
+
+      - name: Print HML URL
+        run: |
+          URL=$(az containerapp show \
+            --name ${{ env.CONTAINER_APP_HML }} \
+            --resource-group ${{ env.RESOURCE_GROUP_HML }} \
+            --query properties.configuration.ingress.fqdn -o tsv)
+          echo "✅ HML deployed → https://$URL"
 
   # ─────────────────────────────────────────────
   # JOB 3 — Deploy to PROD
