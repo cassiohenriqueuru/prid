@@ -14,7 +14,7 @@ on:
         default: false
 
 env:
-  ACR_NAME: pridregistryhml                          # your ACR name (without .azurecr.io)
+  ACR_NAME: pridregistryhml
   ACR_LOGIN_SERVER: pridregistryhml.azurecr.io
   IMAGE_NAME: prid
   RESOURCE_GROUP_HML: hml
@@ -25,7 +25,6 @@ env:
 jobs:
   # ─────────────────────────────────────────────
   # JOB 1 — Build image and push to ACR
-  # Runs on every push to main
   # ─────────────────────────────────────────────
   build:
     name: Build & Push Image
@@ -60,13 +59,12 @@ jobs:
 
   # ─────────────────────────────────────────────
   # JOB 2 — Deploy to HML
-  # Runs automatically after build
   # ─────────────────────────────────────────────
   deploy-hml:
     name: Deploy to HML
     runs-on: ubuntu-latest
     needs: build
-    environment: hml                            # maps to GitHub Environment "hml"
+    environment: hml
 
     steps:
       - name: Azure Login
@@ -82,7 +80,6 @@ jobs:
           resourceGroup: ${{ env.RESOURCE_GROUP_HML }}
           imageToDeploy: ${{ needs.build.outputs.image_tag }}
 
-      # Safety net: force image update explicitly
       - name: Force image update (safety net)
         run: |
           az containerapp update \
@@ -98,44 +95,41 @@ jobs:
             --query properties.configuration.ingress.fqdn -o tsv)
           echo "✅ HML deployed → https://$URL"
 
-
   # ─────────────────────────────────────────────
   # JOB 3 — Deploy to Production
-  # Runs after user aprove
+  # Runs after HML succeeds + manual approval via "prod" environment
   # ─────────────────────────────────────────────
-  deploy-hml:
-    name: Deploy to prod
+  deploy-prod:                                        # ✅ fixed: was duplicate "deploy-hml"
+    name: Deploy to PROD
     runs-on: ubuntu-latest
-    needs: build
-    environment: prod                            # maps to GitHub Environment "hml"
-  
+    needs: [build, deploy-hml]                        # ✅ fixed: waits for HML to pass first
+    environment: prod
+
     steps:
       - name: Azure Login
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
-  
-      - name: Deploy to Container App Prod
+
+      - name: Deploy to Container App PROD
         uses: azure/container-apps-deploy-action@v1
         with:
           acrName: ${{ env.ACR_NAME }}
-          containerAppName: ${{ env.CONTAINER_APP_HML }}
-          resourceGroup: ${{ env.RESOURCE_GROUP_HML }}
+          containerAppName: ${{ env.CONTAINER_APP_PROD }}     # ✅ fixed: was CONTAINER_APP_HML
+          resourceGroup: ${{ env.RESOURCE_GROUP_PROD }}       # ✅ fixed: was RESOURCE_GROUP_HML
           imageToDeploy: ${{ needs.build.outputs.image_tag }}
-  
-      # Safety net: force image update explicitly
+
       - name: Force image update (safety net)
         run: |
           az containerapp update \
-            --name ${{ env.CONTAINER_APP_HML }} \
-            --resource-group ${{ env.RESOURCE_GROUP_HML }} \
+            --name ${{ env.CONTAINER_APP_PROD }} \            # ✅ fixed
+            --resource-group ${{ env.RESOURCE_GROUP_PROD }} \ # ✅ fixed
             --image ${{ needs.build.outputs.image_tag }}
-  
-      - name: Print HML URL
+
+      - name: Print PROD URL
         run: |
           URL=$(az containerapp show \
-            --name ${{ env.CONTAINER_APP_HML }} \
-            --resource-group ${{ env.RESOURCE_GROUP_HML }} \
+            --name ${{ env.CONTAINER_APP_PROD }} \            # ✅ fixed
+            --resource-group ${{ env.RESOURCE_GROUP_PROD }} \ # ✅ fixed
             --query properties.configuration.ingress.fqdn -o tsv)
           echo "✅ PROD deployed → https://$URL"
-
