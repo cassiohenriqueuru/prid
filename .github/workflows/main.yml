@@ -61,7 +61,7 @@ jobs:
   # JOB 2 — Deploy to HML
   # Runs automatically after build
   # ─────────────────────────────────────────────
-  deploy-hml:
+ deploy-hml:
   name: Deploy to HML
   runs-on: ubuntu-latest
   needs: build
